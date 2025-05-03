@@ -1,7 +1,8 @@
+import streamlit as st
 import os
 from dotenv import load_dotenv
 import tweepy
-from textblob import TextBlob
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import matplotlib.pyplot as plt
 
 # --- Load environment variables ---
@@ -10,39 +11,42 @@ BEARER_TOKEN = os.getenv("BEARER_TOKEN")
 
 # --- Debug: check if token loaded ---
 if not BEARER_TOKEN:
-    raise Exception("❌ Bearer Token not found. Check your .env file!")
+    st.error("❌ Bearer Token not found. Check your .env file!")
+    st.stop()
 
 client = tweepy.Client(bearer_token=BEARER_TOKEN)
+analyzer = SentimentIntensityAnalyzer()
 
-query = "Tesla stock -is:retweet lang:en"
+# StreamLit UI
+st.title("📊 Stock Sentiment Analyzer (Live Tweets)")
+stock = st.text_input("Enter a stock keyword (e.g., Tesla, Nvidia, Apple)", value="Tesla")
 
-# --- Fetch Tweets ---
-try:
-    response = client.search_recent_tweets(query=query, max_results=50)
-    tweets_data = response.data
-    if not tweets_data:
-        print("⚠️ No tweets found for the given query.")
-        exit()
-except tweepy.errors.Unauthorized as e:
-    print("❌ Unauthorized: Invalid or expired Bearer Token.")
-    exit()
-except Exception as e:
-    print(f"❌ Error fetching tweets: {e}")
-    exit()
+if st.button("Analyze Sentiment"):
+    with st.spinner("Fetching and analyzing tweets..."):
+        query = f"{stock} stock -is:retweet lang:en"
+        try:
+            response = client.search_recent_tweets(query=query, max_results=50)
+            tweets_data = response.data
+            if not tweets_data:
+                st.warning("⚠️ No tweets found.")
+                st.stop()
+        except Exception as e:
+            st.error(f"❌ Twitter API error: {e}")
+            st.stop()
 
-# --- Extract text and analyze sentiment ---
-tweets = [tweet.text for tweet in tweets_data]
-polarities = [TextBlob(text).sentiment.polarity for text in tweets]
+        tweets = [tweet.text for tweet in tweets_data]
+        scores = [analyzer.polarity_scores(text)['compound'] for text in tweets]
 
-# --- Display tweets with sentiment scores ---
-for i, (text, score) in enumerate(zip(tweets, polarities)):
-    print(f"\nTweet {i+1}: {text}\nSentiment Score: {score:.3f}")
+        # Plot sentiment trend
+        st.subheader("📉 Sentiment Trend")
+        st.line_chart(scores)
 
-# --- Plot the sentiment scores ---
-plt.plot(polarities, marker='o')
-plt.title("📈 Sentiment Polarity of Recent Tweets about Tesla")
-plt.xlabel("Tweet Index")
-plt.ylabel("Polarity (-1 to 1)")
-plt.grid(True)
-plt.tight_layout()
-plt.show()
+        # Show top tweets
+        sorted_tweets = sorted(zip(tweets, scores), key=lambda x: x[1])
+        st.subheader("🔻 Most Negative Tweets")
+        for t, s in sorted_tweets[:3]:
+            st.markdown(f"**{s:.3f}** — {t}")
+
+        st.subheader("🔺 Most Positive Tweets")
+        for t, s in sorted_tweets[-3:]:
+            st.markdown(f"**{s:.3f}** — {t}")

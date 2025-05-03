@@ -1,3 +1,5 @@
+streamlit
+vaderSentiment
 tweepy
-textblob
+python-dotenv
 matplotlib
