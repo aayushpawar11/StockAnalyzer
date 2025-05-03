@@ -19,6 +19,37 @@ analyzer = SentimentIntensityAnalyzer()
 
 # StreamLit UI
 st.title("📊 Stock Sentiment Analyzer (Live Tweets)")
+st.markdown("""
+    <style>
+        body {
+            background-color: #fdfcf9;
+        }
+        .css-18e3th9 {
+            background-color: #003057 !important;  /* Sidebar */
+        }
+        .css-1d391kg {
+            color: #B3A369 !important;             /* Sidebar text */
+        }
+        .css-1v0mbdj, .css-1cpxqw2 {
+            background-color: #003057 !important;  /* Header */
+            color: #B3A369 !important;             /* Header text */
+        }
+        .stButton>button {
+            background-color: #B3A369;
+            color: white;
+            border: none;
+        }
+        .stButton>button:hover {
+            background-color: #8e7a3d;
+            color: white;
+        }
+        .stTextInput>div>div>input {
+            background-color: white;
+            color: black;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 stock = st.text_input("Enter a stock keyword (e.g., Tesla, Nvidia, Apple)", value="Tesla")
 
 if st.button("Analyze Sentiment"):
